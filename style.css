@@ -1,49 +1,134 @@
-/* 全局重置 */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+:root {
+    --bg-main: #0b101c;
+    --text-color: #f0f4f8;
+    --glass-bg: rgba(255,255,255,0.06);
+    --border-color: rgba(255,255,255,0.12);
+    --accent: #38bdf8;
+}
+body.light {
+    --bg-main: #f3f6fa;
+    --text-color: #121a29;
+    --glass-bg: rgba(0,0,0,0.04);
+    --border-color: rgba(0,0,0,0.1);
+    --accent: #0284c7;
+}
+
 body {
     min-height: 100vh;
-    /* 深色渐变背景 */
-    background: linear-gradient(135deg, #0f172a, #1e293b);
+    background: var(--bg-main);
+    color: var(--text-color);
+    font-family: system-ui, sans-serif;
     display: flex;
     justify-content: center;
-    align-items: center;
-    font-family: "Microsoft YaHei", sans-serif;
+    padding: 8px;
+    transition: background 0.3s, color 0.3s;
 }
-
-.clock-box {
+.container {
+    width: 100%;
+    max-width: 280px;
     text-align: center;
-    padding: 60px 80px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 24px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.1);
 }
 
-.time-text {
-    font-size: 6rem;
-    color: #ffffff;
-    letter-spacing: 8px;
+.control-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+.control-panel button {
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 8px;
+    padding: 8px 2px;
+    font-size: 12px;
+    pointer-events: auto; /* 修复手表触控失效 */
+}
+
+.clock-canvas-box {
+    margin: 10px auto;
+}
+#clockCanvas {
+    width: 200px;
+    height: 200px;
+}
+
+.digital-clock {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0;
+}
+.time {
+    font-size: clamp(2rem,12vw,4rem);
+    letter-spacing: 4px;
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--accent);
+    transition: transform 0.2s;
+}
+.ampm {
+    font-size: 1rem;
+    color: var(--accent);
+}
+
+.info-panel {
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 6px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+#batteryShow {
+    margin-top: 4px;
+    color: #4ade80;
+}
+
+.timer-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.timer-modal.show {
+    display: flex;
+}
+.timer-box {
+    background: var(--bg-main);
+    padding: 24px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+#timerText {
+    font-size: 3rem;
     margin-bottom: 16px;
-    text-shadow: 0 0 20px #38bdf8;
+}
+.timer-btns {
+    display: flex;
+    gap: 6px;
+}
+.timer-btns button {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    pointer-events: auto;
 }
 
-.date-text {
-    font-size: 1.5rem;
-    color: #94a3b8;
-    letter-spacing: 2px;
-}
-
-/* 移动端适配 */
-@media screen and (max-width: 600px) {
-    .time-text {
-        font-size: 3rem;
+@media (max-width:220px) {
+    .control-panel {
+        grid-template-columns: 1fr;
     }
-    .clock-box {
-        padding: 40px 20px;
+    #clockCanvas {
+        width: 160px;
+        height: 160px;
     }
 }
