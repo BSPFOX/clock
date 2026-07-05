@@ -92,7 +92,7 @@ body {
     color: #4ade80;
 }
 
-/* 重点修复：强制弹窗默认隐藏，CSS加载失败也不会乱显示 */
+/* 核心修复：强制弹窗默认隐藏，CSS加载失败也不会乱显示 */
 .timer-modal {
     position: fixed;
     inset: 0;
@@ -127,6 +127,7 @@ body {
     pointer-events: auto;
 }
 
+/* 手表小屏适配，样式无改动 */
 @media (max-width:220px) {
     .control-panel {
         grid-template-columns: 1fr;
