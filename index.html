@@ -4,8 +4,145 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>手表专用时钟</title>
-    <!-- 兼容本地&线上双模式，优先相对路径兜底绝对路径 -->
-    <link rel="stylesheet" href="./style.css" onerror="this.href='https://edgzmjkk.dpdns.org/style.css'">
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-main: #0b101c;
+    --text-color: #f0f4f8;
+    --glass-bg: rgba(255,255,255,0.06);
+    --border-color: rgba(255,255,255,0.12);
+    --accent: #38bdf8;
+}
+body.light {
+    --bg-main: #f3f6fa;
+    --text-color: #121a29;
+    --glass-bg: rgba(0,0,0,0.04);
+    --border-color: rgba(0,0,0,0.1);
+    --accent: #0284c7;
+}
+
+body {
+    min-height: 100vh;
+    background: var(--bg-main);
+    color: var(--text-color);
+    font-family: system-ui, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    transition: background 0.3s, color 0.3s;
+}
+.container {
+    width: 100%;
+    max-width: 280px;
+    text-align: center;
+}
+
+.control-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+.control-panel button {
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: 8px;
+    padding: 8px 2px;
+    font-size: 12px;
+    pointer-events: auto;
+}
+
+.clock-canvas-box {
+    margin: 10px auto;
+}
+#clockCanvas {
+    width: 200px;
+    height: 200px;
+}
+
+.digital-clock {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0;
+}
+.time {
+    font-size: clamp(2rem,12vw,4rem);
+    letter-spacing: 4px;
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--accent);
+    transition: transform 0.2s;
+}
+.ampm {
+    font-size: 1rem;
+    color: var(--accent);
+}
+
+.info-panel {
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 6px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+#batteryShow {
+    margin-top: 4px;
+    color: #4ade80;
+}
+
+.timer-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: none !important;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+}
+.timer-modal.show {
+    display: flex !important;
+}
+.timer-box {
+    background: var(--bg-main);
+    padding: 24px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+#timerText {
+    font-size: 3rem;
+    margin-bottom: 16px;
+}
+.timer-btns {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+}
+.timer-btns button {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    pointer-events: auto;
+}
+
+@media (max-width:220px) {
+    .control-panel {
+        grid-template-columns: 1fr;
+    }
+    #clockCanvas {
+        width: 160px;
+        height: 160px;
+    }
+}
+    </style>
 </head>
 <body>
 <div class="container">
@@ -44,6 +181,211 @@
     </div>
 </div>
 
-<script src="./main.js" onerror="this.src='https://edgzmjkk.dpdns.org/main.js'"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const defaultState = {
+        is12h: false,
+        lightMode: false,
+        fontSizeLevel: 0,
+        timerRunning: false,
+        timerSeconds: 0,
+        timerInterval: null
+    };
+    const saveKey = "watchClockConfig";
+    let state = { ...defaultState };
+
+    try {
+        const savedData = localStorage.getItem(saveKey);
+        if (savedData) {
+            const parseResult = JSON.parse(savedData);
+            state = Object.assign({}, defaultState, parseResult);
+        }
+    } catch (err) {
+        localStorage.removeItem(saveKey);
+    }
+
+    const timeShow = document.getElementById("timeShow");
+    const ampmDom = document.getElementById("ampm");
+    const dateShow = document.getElementById("dateShow");
+    const lunarShow = document.getElementById("lunarShow");
+    const zoneShow = document.getElementById("zoneShow");
+    const batteryShow = document.getElementById("batteryShow");
+    const canvas = document.getElementById("clockCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const btn12 = document.getElementById("mode12");
+    const themeBtn = document.getElementById("themeBtn");
+    const sizeBtn = document.getElementById("sizeBtn");
+    const timerBtn = document.getElementById("timerBtn");
+    const timerModal = document.getElementById("timerModal");
+    const timerText = document.getElementById("timerText");
+    const startTimer = document.getElementById("startTimer");
+    const resetTimer = document.getElementById("resetTimer");
+    const closeTimer = document.getElementById("closeTimer");
+
+    const weekText = ["日", "一", "二", "三", "四", "五", "六"];
+    const lunarMonth = ["正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "冬月", "腊月"];
+    const lunarDay = ["初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十", "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"];
+
+    function saveConfig() {
+        try {
+            localStorage.setItem(saveKey, JSON.stringify(state));
+        } catch (e) {}
+    }
+
+    function applyTheme() {
+        state.lightMode ? document.body.classList.add("light") : document.body.classList.remove("light");
+    }
+    applyTheme();
+
+    themeBtn.addEventListener("click", () => {
+        state.lightMode = !state.lightMode;
+        applyTheme();
+        saveConfig();
+    });
+
+    sizeBtn.addEventListener("click", () => {
+        state.fontSizeLevel = (state.fontSizeLevel + 1) % 3;
+        const scaleList = [1, 1.3, 1.6];
+        document.querySelector(".time").style.transform = `scale(${scaleList[state.fontSizeLevel]})`;
+        saveConfig();
+    });
+
+    btn12.addEventListener("click", () => {
+        state.is12h = !state.is12h;
+        saveConfig();
+    });
+
+    timerBtn.addEventListener("click", () => timerModal.classList.add("show"));
+    closeTimer.addEventListener("click", () => timerModal.classList.remove("show"));
+
+    startTimer.addEventListener("click", () => {
+        if (state.timerRunning) return;
+        state.timerRunning = true;
+        state.timerInterval = setInterval(() => {
+            state.timerSeconds++;
+            const minStr = String(Math.floor(state.timerSeconds / 60)).padStart(2, "0");
+            const secStr = String(state.timerSeconds % 60).padStart(2, "0");
+            timerText.innerText = `${minStr}:${secStr}`;
+        }, 1000);
+    });
+
+    resetTimer.addEventListener("click", () => {
+        clearInterval(state.timerInterval);
+        state.timerRunning = false;
+        state.timerSeconds = 0;
+        timerText.innerText = "00:00";
+    });
+
+    function getLunar(year, month, day) {
+        const baseDate = new Date(2000, 0, 1);
+        const targetDate = new Date(year, month - 1, day);
+        const dayDiff = Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24));
+        const totalDays = dayDiff + 4;
+        const mIdx = Math.floor(totalDays / 30) % 12;
+        const dIdx = totalDays % 30;
+        return lunarMonth[mIdx] + lunarDay[dIdx];
+    }
+
+    function updateBattery() {
+        let batNum = parseInt(batteryShow.innerText.replace(/[^\d]/g, "")) || 100;
+        if (Math.random() > 0.96 && batNum > 1) batNum--;
+        batteryShow.innerText = `电量：${batNum}%`;
+        batteryShow.style.color = batNum < 20 ? "#ef4444" : "#4ade80";
+    }
+
+    function getThemeColorCache() {
+        const rootStyle = getComputedStyle(document.documentElement);
+        return {
+            accent: rootStyle.getPropertyValue("--accent").trim(),
+            text: rootStyle.getPropertyValue("--text-color").trim()
+        };
+    }
+
+    function drawClock(hour, min, sec) {
+        const canvasW = canvas.width;
+        const canvasH = canvas.height;
+        const radius = canvasW / 2 - 10;
+        const color = getThemeColorCache();
+        ctx.clearRect(0, 0, canvasW, canvasH);
+
+        ctx.beginPath();
+        ctx.arc(canvasW / 2, canvasH / 2, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = color.accent;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        for (let i = 0; i < 60; i++) {
+            const rad = i * Math.PI / 30;
+            const x1 = canvasW / 2 + Math.cos(rad) * (radius - 8);
+            const y1 = canvasH / 2 + Math.sin(rad) * (radius - 8);
+            const x2 = canvasW / 2 + Math.cos(rad) * (radius - 2);
+            const y2 = canvasH / 2 + Math.sin(rad) * (radius - 2);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineWidth = i % 5 === 0 ? 3 : 1;
+            ctx.strokeStyle = color.text;
+            ctx.stroke();
+        }
+
+        const hourRad = (hour % 12) * Math.PI / 6 + min * Math.PI / 360 + sec * Math.PI / 21600;
+        drawHandLine(canvasW / 2, canvasH / 2, hourRad, radius * 0.5, 5, color.text);
+        const minRad = min * Math.PI / 30 + sec * Math.PI / 1800;
+        drawHandLine(canvasW / 2, canvasH / 2, minRad, radius * 0.75, 3, color.text);
+        const secRad = sec * Math.PI / 30;
+        drawHandLine(canvasW / 2, canvasH / 2, secRad, radius * 0.9, 1, "#f87171");
+    }
+
+    function drawHandLine(x, y, rad, length, width, color) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        const endX = x + Math.cos(rad) * length;
+        const endY = y + Math.sin(rad) * length;
+        ctx.lineTo(endX, endY);
+        ctx.lineWidth = width;
+        ctx.strokeStyle = color;
+        ctx.lineCap = "round";
+        ctx.stroke();
+    }
+
+    function updateClock() {
+        try {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            let ampmText = "";
+            if (state.is12h) {
+                ampmText = hours >= 12 ? "PM" : "AM";
+                hours = hours % 12 || 12;
+            }
+            ampmDom.innerText = ampmText;
+            const hStr = String(hours).padStart(2, "0");
+            const mStr = String(minutes).padStart(2, "0");
+            const sStr = String(seconds).padStart(2, "0");
+            timeShow.innerText = `${hStr}:${mStr}:${sStr}`;
+
+            const y = now.getFullYear();
+            const m = now.getMonth() + 1;
+            const d = now.getDate();
+            const weekIdx = now.getDay();
+            dateShow.innerText = `${y}年${m}月${d}日 星期${weekText[weekIdx]}`;
+            lunarShow.innerText = "农历 " + getLunar(y, m, d);
+
+            const timeZone = -now.getTimezoneOffset() / 60;
+            zoneShow.innerText = `本地时区 UTC${timeZone >= 0 ? "+" : ""}${timeZone}`;
+
+            drawClock(now.getHours(), minutes, seconds);
+        } catch (error) {}
+    }
+
+    updateClock();
+    updateBattery();
+    setInterval(updateClock, 1000);
+    setInterval(updateBattery, 30000);
+});
+</script>
 </body>
 </html>
