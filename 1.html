@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>精美动态时钟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", system-ui, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            transition: background 1s ease;
+        }
+
+        /* 毛玻璃容器 */
+        .clock-wrap {
+            backdrop-filter: blur(16px);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+            padding: 40px 60px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        /* 指针表盘 */
+        .clock-circle {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.2);
+            margin: 0 auto 30px;
+            position: relative;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 60%, transparent 61%);
+        }
+
+        /* 刻度 */
+        .clock-mark {
+            position: absolute;
+            width: 4px;
+            height: 12px;
+            background: rgba(255,255,255,0.4);
+            left: 50%;
+            transform-origin: center 130px;
+        }
+        .clock-mark.big {
+            height: 20px;
+            width: 6px;
+            background: rgba(255,255,255,0.7);
+        }
+
+        /* 指针 */
+        .hour, .min, .sec {
+            position: absolute;
+            left: 50%;
+            bottom: 50%;
+            transform-origin: bottom center;
+            border-radius: 99px;
+        }
+        .hour {
+            width: 8px;
+            height: 70px;
+            margin-left: -4px;
+            background: #e8f4ff;
+        }
+        .min {
+            width: 5px;
+            height: 100px;
+            margin-left: -2.5px;
+            background: #c0e0ff;
+        }
+        .sec {
+            width: 2px;
+            height: 115px;
+            margin-left: -1px;
+            background: #4fc3f7;
+        }
+        .center-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9;
+        }
+
+        /* 数字时钟 */
+        .digital-time {
+            font-size: 4.5rem;
+            font-weight: 200;
+            color: #ffffff;
+            letter-spacing: 6px;
+            margin-bottom: 12px;
+            text-shadow: 0 0 20px rgba(79, 195, 247, 0.4);
+        }
+        .date-text {
+            font-size: 1.2rem;
+            color: rgba(255,255,255,0.75);
+            letter-spacing: 2px;
+        }
+
+        /* 移动端适配 */
+        @media(max-width: 500px) {
+            .clock-wrap {
+                padding: 30px 20px;
+            }
+            .digital-time {
+                font-size: 3rem;
+            }
+            .clock-circle {
+                width: 200px;
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="clock-wrap">
+        <!-- 指针表盘 -->
+        <div class="clock-circle" id="circle">
+            <div class="hour" id="hour"></div>
+            <div class="min" id="min"></div>
+            <div class="sec" id="sec"></div>
+            <div class="center-dot"></div>
+        </div>
+        <!-- 数字时钟 -->
+        <div class="digital-time" id="digital"></div>
+        <div class="date-text" id="date"></div>
+    </div>
+
+    <script>
+        // 生成表盘刻度
+        const circle = document.getElementById('circle');
+        for(let i=0; i<60; i++){
+            const mark = document.createElement('div');
+            mark.className = 'clock-mark';
+            if(i % 5 === 0) mark.classList.add('big');
+            mark.style.transform = `rotate(${i * 6}deg)`;
+            circle.appendChild(mark);
+        }
+
+        const hourHand = document.getElementById('hour');
+        const minHand = document.getElementById('min');
+        const secHand = document.getElementById('sec');
+        const digitalBox = document.getElementById('digital');
+        const dateBox = document.getElementById('date');
+
+        function updateClock() {
+            const now = new Date();
+            let h = now.getHours();
+            let m = now.getMinutes();
+            let s = now.getSeconds();
+
+            // 指针角度计算
+            const secDeg = s * 6;
+            const minDeg = m * 6 + s * 0.1;
+            const hourDeg = (h % 12) * 30 + m * 0.5;
+            secHand.style.transform = `rotate(${secDeg}deg)`;
+            minHand.style.transform = `rotate(${minDeg}deg)`;
+            hourHand.style.transform = `rotate(${hourDeg}deg)`;
+
+            // 补零格式化
+            const format = n => n.toString().padStart(2, '0');
+            digitalBox.innerText = `${format(h)} : ${format(m)} : ${format(s)}`;
+
+            // 日期星期
+            const weekArr = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+            const year = now.getFullYear();
+            const mon = format(now.getMonth()+1);
+            const day = format(now.getDate());
+            const week = weekArr[now.getDay()];
+            dateBox.innerText = `${year} 年 ${mon} 月 ${day} 日 ${week}`;
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
+</body>
+</html>
