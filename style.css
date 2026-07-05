@@ -1,0 +1,49 @@
+/* 全局重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    /* 深色渐变背景 */
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: "Microsoft YaHei", sans-serif;
+}
+
+.clock-box {
+    text-align: center;
+    padding: 60px 80px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 24px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.time-text {
+    font-size: 6rem;
+    color: #ffffff;
+    letter-spacing: 8px;
+    margin-bottom: 16px;
+    text-shadow: 0 0 20px #38bdf8;
+}
+
+.date-text {
+    font-size: 1.5rem;
+    color: #94a3b8;
+    letter-spacing: 2px;
+}
+
+/* 移动端适配 */
+@media screen and (max-width: 600px) {
+    .time-text {
+        font-size: 3rem;
+    }
+    .clock-box {
+        padding: 40px 20px;
+    }
+}
